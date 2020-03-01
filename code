@@ -1,0 +1,128 @@
+#include <fstream>
+#include <vector>
+#include <string>
+#include <algorithm>
+#include <cmath>
+#include <ctime>
+#include <map>
+
+using namespace std;
+
+ifstream cin("sum.in");
+ofstream cout("sum.out");
+
+map<int, int> mp;
+long long sm = 0;
+int n, z = 0;
+
+struct tr {
+	int key, pr;
+	long long sm;
+	tr *l;
+	tr *r;
+	tr(long long x) {
+		sm = key = x;
+		pr = rand() % 1000000007;
+		l = r = nullptr;
+	}
+};
+
+void refresh(tr* a) {
+	if (a == nullptr) return;
+	long long A = 0, B = 0;
+	if (a->l != nullptr) {
+		A = a->l->sm;
+	}
+	if (a->r != nullptr) {
+		B = a->r->sm;
+	}
+	a->sm = A + B + a->key;
+}
+
+pair<tr*, tr*> split(tr* root, int key) {
+	if (root == nullptr) {
+		return { nullptr, nullptr };
+	}
+	if (root->key < key) {
+		pair<tr*, tr*> ntr = split(root->r, key);
+		root->r = ntr.first;
+		refresh(root);
+		refresh(ntr.second);
+		return { root, ntr.second };
+	}
+	else {
+		pair<tr*, tr*> ntr = split(root->l, key);
+		root->l = ntr.second;
+		refresh(ntr.first);
+		refresh(root);
+		return { ntr.first, root };
+	}
+}
+
+tr* merge(tr* a, tr* b) {
+	if (a == nullptr) return b;
+	if (b == nullptr) return a;
+	if (a->pr > b->pr) {
+		a->r = merge(a->r, b);
+		refresh(a);
+		return a;
+	}
+	else {
+		b->l = merge(a, b->l);
+		refresh(b);
+		return b;
+	}
+}
+
+tr* add(tr* a, int x) {
+	tr* p = new tr(x);
+	pair<tr*, tr*> w = split(a, x);
+	w.first = merge(w.first, p);
+	return merge(w.first, w.second);
+}
+
+void check(tr* a) {
+	if (a == nullptr) return;
+	refresh(a);
+	sm += a->sm;
+}
+
+tr* sum(tr* a, int l, int r) {
+	pair<tr*, tr*> w = split(a, l);
+	pair<tr*, tr*> q = split(w.second, r + 1);
+	check(q.first);
+	w.second = merge(q.first, q.second);
+	return (merge(w.first, w.second));
+}
+
+int main()
+{
+	tr *v = nullptr;
+	cin >> n;
+	for (int i = 0; i < n; i++) {
+		char a;
+		cin >> a;
+		if (a == '+') {
+			long long t;
+			cin >> t;
+			t += sm;
+			t %= 1000000000;
+			if (mp[t] == 1) {
+				sm = 0;
+				continue;
+			}
+			mp[t] = 1;
+			v = add(v, t);
+			sm = 0;
+		}
+		else {
+			int l, r;
+			sm = 0;
+			cin >> l >> r;
+			v = sum(v, l, r);
+			cout << sm << "\n";
+		}
+	}
+	return 0;
+}
+
